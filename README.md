@@ -8,6 +8,8 @@
 
 同时它是一个 **MCP 服务**：你的 AI 能自己翻书、搜书、看目录、看你划过哪些线。
 
+**不只 Claude**：Claude Code（`claude -p`）、Claude API、Claude Agent SDK、OpenAI 格式的各家模型（GPT、DeepSeek、Gemini、豆包、硅基流动、OpenRouter……）、你自己的 bridge 或脚本，都能接。
+
 | 书架 | 阅读 | 批注 | 好词好句本 |
 |---|---|---|---|
 | ![书架](docs/shelf.webp) | ![阅读](docs/read.webp) | ![批注](docs/note.webp) | ![好词好句本](docs/sitat.webp) |
@@ -70,9 +72,33 @@ sudo ./install.sh                     # 建 venv、装依赖、装 systemd 服�
 - 用中转站就填 `base_url`；中转不认 `fallbacks`（官方 API 的拒答自动换模型）报错的话，把它改成 `false`。
 - 模型、`max_tokens` 都可以改；要省钱可以换成 `claude-sonnet-5`。
 
+### `openai` —— GPT、DeepSeek、Gemini、豆包……（OpenAI 格式）
+
+只要那家给的是 OpenAI 格式的接口（`/chat/completions`），填网址、key、模型名就能用：
+
+```json
+"companion": { "mode": "openai",
+  "openai": { "base_url": "https://api.deepseek.com/v1", "api_key": "env:OPENAI_API_KEY", "model": "deepseek-chat", "history_turns": 20 } }
+```
+
+| 用哪家 | `base_url` | `model` 举例 |
+|---|---|---|
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
+| OpenAI | `https://api.openai.com/v1` | 你账号里能用的模型 |
+| Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-…` |
+| 豆包（火山方舟） | `https://ark.cn-beijing.volces.com/api/v3` | 你的接入点 ID |
+| 硅基流动 | `https://api.siliconflow.cn/v1` | 平台上的模型名 |
+| OpenRouter | `https://openrouter.ai/api/v1` | `厂商/模型名` |
+
+- key 同样写在 `.env`（`OPENAI_API_KEY=...`），config 里 `"env:OPENAI_API_KEY"` 引用；变量名随你起。
+- 跟 `api` 模式一样：书房记着这本书最近几轮，每条带那一页原文；`system_file` 放人设。
+- `max_tokens` 默认不发；要限长度就填，有的新模型要求叫 `max_completion_tokens`，用 `max_tokens_field` 改名。
+- `extra` 里的东西会原样并进请求（比如 `{"temperature": 0.7}`）。
+- 记得把 `ai_name` 改成你家 AI 的名字，页面上才不会写着 Claude。
+
 ### `command` —— 用 SDK（或任何你自己的程序）
 
-书房把要送的那条消息从 **stdin** 给你的程序，你把回复 **print 到 stdout**。退出码 75 表示「正忙，等会儿再来」。
+书房把要送的那条消息从 **stdin** 给你的程序，你把回复 **print 到 stdout**。退出码 75 表示「正忙，等会儿再来」。什么语言、接哪家模型都行。
 
 ```json
 "companion": { "mode": "command",
@@ -119,8 +145,8 @@ sudo ./install.sh                     # 建 venv、装依赖、装 systemd 服�
 | `background` | /assets/bg.webp | 背景图，换成你自己的放进 `assets/` |
 | `study_rooms` | false | 显示生词本 / 错题本 / 练习题三间 |
 | `alphabet` | a–z | 生词本按首字母筛选用的字母表（学挪威语可以填 `abcdefghijklmnopqrstuvwxyzæøå`） |
-| `companion.attach_page` | api 模式开 | 每条消息都带上那一页原文 |
-| `companion.hint` | api 以外开 | 每条消息末尾的那行提示 |
+| `companion.attach_page` | api / openai 模式开 | 每条消息都带上那一页原文 |
+| `companion.hint` | api / openai 以外开 | 每条消息末尾的那行提示 |
 
 ## 已知限制
 

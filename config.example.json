@@ -38,6 +38,18 @@
       "system_file": ""
     },
 
+    "openai": {
+      "base_url": "https://api.deepseek.com/v1",
+      "api_key": "env:OPENAI_API_KEY",
+      "model": "deepseek-chat",
+      "max_tokens": null,
+      "max_tokens_field": "max_tokens",
+      "history_turns": 20,
+      "system_file": "",
+      "extra": {},
+      "timeout": 600
+    },
+
     "http": {
       "url": "http://127.0.0.1:3456/v1/messages",
       "format": "anthropic",

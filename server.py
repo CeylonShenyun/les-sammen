@@ -1,7 +1,7 @@
 """les-sammen —— 一起读的书房。
 
 把 pdf / epub / txt 放上书架，在网页阅读器里读；划一句、点「一起读这页」、在书页旁的小窗里说话，
-就会送给你的 AI（claude -p 接着你的会话 / Claude API / 你自己的 bridge 或 SDK 脚本），
+就会送给你的 AI（claude -p 接着你的会话 / Claude API / OpenAI 格式的各家模型 / 你自己的 bridge 或 SDK 脚本），
 它的回复贴回那一页、那条线旁边。同时是一个 MCP 服务：AI 能翻书、搜书、记进度、看你划过的线。
 一个文件 + SQLite，配置在 config.json。
 """
@@ -1316,8 +1316,9 @@ _wake = threading.Event()
 MODE = str(COMP.get("mode") or "off").strip()
 ATTACH_PAGE = COMP.get("attach_page")
 if ATTACH_PAGE is None:
-    ATTACH_PAGE = MODE == "api"  # api 模式的 AI 没法自己翻书，每次带上那一页
-HINT = MODE != "api" if COMP.get("hint") is None else bool(COMP.get("hint"))  # 每条末尾提醒一句回复会贴在书页旁（AI 那边写好规矩以后可以关；api 模式写在系统提示里了）
+    ATTACH_PAGE = MODE in ("api", "openai")  # 直接调模型的两种模式 AI 没法自己翻书，每次带上那一页
+# 每条末尾提醒一句回复会贴在书页旁（AI 那边写好规矩以后可以关；api / openai 模式写在系统提示里了）
+HINT = MODE not in ("api", "openai") if COMP.get("hint") is None else bool(COMP.get("hint"))
 
 
 def _env_value(v):
@@ -1434,6 +1435,65 @@ API_SYSTEM = (
     "别复述原文，别掉书袋。")
 
 
+def _history(book, turn_id: int, c: dict) -> list:
+    """这本书之前聊过的最近几轮（一问一答），api / openai 模式每次带上，AI 记得刚才说过什么。"""
+    conn = db()
+    hist = conn.execute(
+        "SELECT u.sent, (SELECT text FROM talk WHERE turn_id=u.id AND who='ai' ORDER BY id LIMIT 1) AS reply "
+        "FROM turns u WHERE u.book_id=? AND u.status='done' AND u.id<? ORDER BY u.id DESC LIMIT ?",
+        (book["id"], turn_id, int(c.get("history_turns") or 20))).fetchall()
+    conn.close()
+    out = []
+    for h in reversed(hist):
+        if h["sent"] and h["reply"]:
+            out += [{"role": "user", "content": h["sent"]}, {"role": "assistant", "content": h["reply"]}]
+    return out
+
+
+def _system(c: dict) -> str:
+    system = API_SYSTEM.format(reader=READER)
+    if c.get("system_file"):  # 人设文件放最前面
+        try:
+            system = (BASE / c["system_file"]).read_text(encoding="utf-8").strip() + "\n\n" + system
+        except Exception:
+            pass
+    return system
+
+
+def _send_openai(text: str, book, turn_id: int) -> tuple:
+    """OpenAI 格式（/chat/completions）：GPT、DeepSeek、Gemini、豆包、硅基流动、OpenRouter……填网址、key、模型名就能接。"""
+    c = COMP.get("openai") or {}
+    base = (c.get("base_url") or "").rstrip("/")
+    if not base or not c.get("model"):
+        return "fail", "companion.openai 的 base_url 和 model 要填"
+    body = {"model": c["model"],
+            "messages": [{"role": "system", "content": _system(c)}] + _history(book, turn_id, c)
+            + [{"role": "user", "content": text}]}
+    if c.get("max_tokens"):  # 有的新模型要 max_completion_tokens，用 max_tokens_field 改
+        body[c.get("max_tokens_field") or "max_tokens"] = int(c["max_tokens"])
+    body.update(c.get("extra") or {})  # temperature 之类、或者各家自己的参数
+    headers = {"content-type": "application/json", **{k: _env_value(v) for k, v in (c.get("headers") or {}).items()}}
+    key = _env_value(c.get("api_key") or "")
+    if key:
+        headers["authorization"] = f"Bearer {key}"
+    req = urllib.request.Request(base + "/chat/completions", data=json.dumps(body).encode(), method="POST", headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=float(c.get("timeout") or 600)) as r:
+            j = json.loads(r.read().decode("utf-8", "replace"))
+    except urllib.error.HTTPError as e:
+        return ("busy" if e.code == 429 or e.code >= 500 else "fail"), f"{e.code} {e.read().decode('utf-8', 'replace')[:200]}"
+    except Exception as e:
+        return "busy", str(e)[:200]
+    try:
+        msg = j["choices"][0]["message"]
+    except Exception:
+        return "fail", json.dumps(j, ensure_ascii=False)[:200]
+    content = msg.get("content") or ""
+    if isinstance(content, list):  # 少数家回的是分段的
+        content = "".join(x.get("text", "") for x in content if isinstance(x, dict))
+    return "ok", str(content).strip()
+
+
 def _send_api(text: str, book, turn_id: int) -> tuple:
     """直接调 Claude API（官方 anthropic SDK）。这本书之前聊过的几轮一起带上，所以记得刚才说过什么。"""
     try:
@@ -1447,23 +1507,8 @@ def _send_api(text: str, book, turn_id: int) -> tuple:
     if c.get("api_key"):
         kw["api_key"] = _env_value(c["api_key"])
     client = anthropic.Anthropic(**kw)
-    conn = db()
-    hist = conn.execute(
-        "SELECT u.sent, (SELECT text FROM talk WHERE turn_id=u.id AND who='ai' ORDER BY id LIMIT 1) AS reply "
-        "FROM turns u WHERE u.book_id=? AND u.status='done' AND u.id<? ORDER BY u.id DESC LIMIT ?",
-        (book["id"], turn_id, int(c.get("history_turns") or 20))).fetchall()
-    conn.close()
-    messages = []
-    for h in reversed(hist):
-        if h["sent"] and h["reply"]:
-            messages += [{"role": "user", "content": h["sent"]}, {"role": "assistant", "content": h["reply"]}]
-    messages.append({"role": "user", "content": text})
-    system = API_SYSTEM.format(reader=READER)
-    if c.get("system_file"):
-        try:
-            system = (BASE / c["system_file"]).read_text(encoding="utf-8").strip() + "\n\n" + system
-        except Exception:
-            pass
+    messages = _history(book, turn_id, c) + [{"role": "user", "content": text}]
+    system = _system(c)
     req = dict(model=c.get("model") or "claude-opus-5", max_tokens=int(c.get("max_tokens") or 16000),
                system=system, messages=messages, cache_control={"type": "ephemeral"})
     try:
@@ -1495,6 +1540,8 @@ def _deliver(text: str, book, turn_id: int) -> tuple:
         return _send_command(text, book)
     if MODE == "api":
         return _send_api(text, book, turn_id)
+    if MODE == "openai":
+        return _send_openai(text, book, turn_id)
     return "fail", "没接 AI（config.json 里 companion.mode 是 off）"
 
 
