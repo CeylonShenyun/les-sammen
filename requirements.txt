@@ -1,0 +1,5 @@
+fastmcp>=4.0
+pypdf>=4.0
+python-multipart>=0.0.9
+# 只有 companion.mode = "api" 才需要：
+# anthropic>=1.0

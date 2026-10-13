@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--BOOT-->
+<title>书房 · Bibliotek</title>
+<style>
+/* 书房 bibliotek（10-13 换成小窝那套深海玻璃）。色卡 11141B / 1C273E / 2C4972 / 4A74A1 / 8FACCB；
+   底图是画室 a192 蓝调时刻的窗边书房（新页面单独画，不复用）。功能跟以前一样：书架、上架、改名、生词本、错题本、练习题。 */
+:root{
+  --abyss:#11141B;--deep:#1C273E;--navy:#2C4972;--steel:#4A74A1;--bachelor:#8FACCB;
+  --ink:#E7EEF7;--ink2:#B4C6DB;--ink3:#7F98B4;
+  --serif:"Noto Serif SC","Noto Serif CJK SC","Source Han Serif SC","Songti SC","STSong","SimSun",Georgia,serif;--latin:Georgia,"Noto Serif SC",serif;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--abyss);-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100vh;background:var(--abyss);color:var(--ink);font-family:var(--serif);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer}
+input{font:inherit;color:inherit}
+.bgs{position:fixed;inset:0;z-index:0;pointer-events:none;background:var(--abyss);overflow:hidden}
+.bgs img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:46% 36%}
+.bgs::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,20,27,.22) 0%,rgba(17,20,27,.3) 28%,rgba(17,20,27,.66) 58%,rgba(17,20,27,.9) 100%)}
+main{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:10px 14px calc(40px + env(safe-area-inset-bottom))}
+
+.glass{position:relative;border-radius:20px;
+  background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.02) 40%,rgba(255,255,255,0) 66%,rgba(255,255,255,.05)),color-mix(in srgb,var(--tile,#11141B) var(--a,22%),transparent);
+  -webkit-backdrop-filter:blur(6px) saturate(140%);backdrop-filter:blur(6px) saturate(140%);
+  border:1px solid rgba(255,255,255,.2);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.35),inset 0 -1px 2px rgba(0,0,0,.2),0 16px 34px -18px rgba(0,0,0,.8);
+  text-shadow:0 1px 6px rgba(17,20,27,.6)}
+.glass::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(130% 70% at 8% -8%,rgba(255,255,255,.2),rgba(255,255,255,0) 52%),radial-gradient(80% 50% at 100% 110%,rgba(255,255,255,.08),rgba(255,255,255,0) 60%)}
+.glass>*{position:relative}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.glass{--a:86%!important}}
+
+/* 页头 */
+.top{display:flex;align-items:center;gap:10px;padding:6px 0 4px;text-shadow:0 1px 12px rgba(17,20,27,.8)}
+.back{width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:22px;line-height:1;--a:18%}
+.top .t{flex:1;min-width:0}
+.top .k{display:block;font:9.5px/1.6 var(--latin);letter-spacing:.32em;color:rgba(231,238,247,.72)}
+.top h1{margin:2px 0 0;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:10px;font:500 27px/1.15 var(--serif)}
+.top h1 em{font:italic 400 15px var(--latin);color:var(--bachelor)}
+.lede{margin:8px 4px 16px;font:italic 13px/1.6 var(--latin);color:rgba(231,238,247,.7);text-shadow:0 1px 10px rgba(17,20,27,.9)}
+
+/* 接着读 */
+.cont{display:flex;align-items:center;gap:16px;padding:16px 16px 16px 16px;margin-bottom:22px;--tile:#4A74A1;--a:14%;min-height:132px}
+.cont .cv{width:72px;flex:none}
+.cont .w{flex:1;min-width:0}
+.cont small{display:block;font:9.5px/1.5 var(--latin);letter-spacing:.28em;color:rgba(231,238,247,.75)}
+.cont strong{display:block;margin-top:8px;font:500 19px/1.35 var(--serif);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cont em{display:block;margin-top:4px;font:italic 12px/1.5 var(--latin);color:rgba(231,238,247,.78)}
+.cont .bar{margin-top:10px;height:3px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}
+.cont .bar i{display:block;height:100%;background:var(--bachelor);border-radius:2px}
+.go{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;font-weight:600;color:#11141B;padding:5px 13px;border-radius:999px;background:var(--bachelor);text-shadow:none}
+.cont:active,.row:active,.bk .cv:active{transform:scale(.985)}
+
+/* 小标题 */
+.label{display:flex;align-items:baseline;gap:10px;padding:0 6px 10px;font:10px/1.6 var(--latin);letter-spacing:.3em;color:rgba(231,238,247,.7);text-transform:uppercase;text-shadow:0 1px 8px rgba(17,20,27,.9)}
+.label b{font:500 13px/1.4 var(--serif);letter-spacing:.08em;color:var(--ink);text-transform:none}
+.label .n{margin-left:auto;font:italic 12px var(--latin);letter-spacing:.04em;text-transform:none;color:var(--ink3)}
+
+/* 书架：一块玻璃，书一本本立着 */
+.shelf{--tile:#1C273E;--a:26%;padding:18px 12px 6px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px 12px}
+.bk{min-width:0}
+.cv{position:relative;display:block;aspect-ratio:2/3;border-radius:4px 7px 7px 4px;overflow:hidden;text-shadow:none;
+  box-shadow:0 0 0 1px rgba(255,255,255,.14),0 12px 20px -10px rgba(0,0,0,.85);transition:transform .15s}
+.cv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cv::after{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(90deg,rgba(0,0,0,.35),rgba(255,255,255,.12) 4%,rgba(0,0,0,.08) 7%,transparent 12%),linear-gradient(160deg,rgba(255,255,255,.14),transparent 40%)}
+/* 没封面的书：一块深海色的布面，烫一圈冰蓝细线 */
+.gen{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:16% 12% 11% 15%;
+  background:radial-gradient(120% 80% at 30% 15%,rgba(255,255,255,.12),transparent 60%),var(--cloth);color:#dce7f4;text-align:center}
+.gen::before{content:'';position:absolute;inset:7% 8% 7% 11%;border:1px solid rgba(143,172,203,.55);outline:1px solid rgba(143,172,203,.22);outline-offset:3px;pointer-events:none}
+.gen b{font:600 13px/1.35 var(--serif);letter-spacing:.04em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.gen.han b{writing-mode:vertical-rl;display:block;max-height:74%;letter-spacing:.2em;font-size:14px}
+.gen i{font:italic 10px/1.3 var(--latin);color:rgba(220,231,244,.7)}
+.cont .gen b{font-size:9px}.cont .gen i{display:none}.cont .gen{padding:12% 8%}
+.mk{position:absolute;z-index:3;top:6px;right:6px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--bachelor);color:#11141B;
+  font:600 11px/20px var(--latin);text-align:center;box-shadow:0 0 0 2px rgba(17,20,27,.3),0 0 12px rgba(143,172,203,.8)}
+.fmt{position:absolute;z-index:3;left:9px;bottom:6px;font:8.5px/1 var(--latin);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.8)}
+.bk .t{margin-top:9px;font:500 13px/1.4 var(--serif);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.bk .a{font:italic 11px/1.5 var(--latin);color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk .pb{margin-top:6px;height:2px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}
+.bk .pb i{display:block;height:100%;background:var(--bachelor)}
+.bk .m{margin-top:4px;font:10.5px/1.5 var(--latin);color:var(--ink3);letter-spacing:.02em}
+.bk .m a{color:var(--ink2);cursor:pointer}
+.bk .busy{color:var(--bachelor)}
+.edit input{width:100%;margin-top:4px;border:0;border-bottom:1px dashed rgba(231,238,247,.4);background:transparent;color:var(--ink);outline:none;font:13px/1.8 var(--serif);border-radius:0}
+.edit input.au{font:italic 12px var(--latin)}
+.edit .btns{display:flex;gap:12px;margin-top:6px;font-size:12px}
+.edit .btns .go2{color:var(--bachelor)}
+.edit .btns span{cursor:pointer;color:var(--ink3)}
+.empty{padding:22px 10px 24px;text-align:center;font:14px/1.9 var(--serif);color:rgba(231,238,247,.84)}
+.empty em{display:block;font:italic 12.5px var(--latin);color:rgba(231,238,247,.55)}
+
+/* 一个分类一层小书架：书横着排、能左右滑，底下一块玻璃搁板 */
+.cat{margin-bottom:20px}
+.mini{--tile:#1C273E;--a:26%;padding:16px 0 12px;overflow:hidden}
+.mini::after{content:'';position:absolute;z-index:0;left:0;right:0;top:160px;height:12px;pointer-events:none;
+  background:linear-gradient(180deg,rgba(231,238,247,.26),rgba(143,172,203,.07));border-top:1px solid rgba(255,255,255,.45);
+  box-shadow:0 12px 16px -8px rgba(0,0,0,.7),inset 0 1px 1px rgba(255,255,255,.3)}
+.mini .scroll{position:relative;z-index:1;display:flex;gap:14px;overflow-x:auto;padding:0 16px 2px;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.mini .scroll::-webkit-scrollbar{display:none}
+.mini .bk{flex:0 0 96px;scroll-snap-align:start}
+.mini .cv{width:96px;height:144px;aspect-ratio:auto}
+.mini .bk .t{margin-top:20px}
+.mini .tail{flex:0 0 2px}
+.cat.lt .mini{--tile:#3B5E89;--a:20%}
+/* 编辑抽屉 */
+.mask{position:fixed;inset:0;z-index:20;background:rgba(5,8,12,.55);opacity:0;pointer-events:none;transition:opacity .25s}
+.mask.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;z-index:21;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;max-height:88vh;overflow-y:auto;
+  padding:10px 18px calc(18px + env(safe-area-inset-bottom));border-radius:24px 24px 0 0;
+  background:linear-gradient(180deg,rgba(44,73,114,.96),rgba(28,39,62,.98) 46%,rgba(17,20,27,.99));border:1px solid rgba(255,255,255,.18);border-bottom:0;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.3),0 -20px 50px -20px rgba(0,0,0,.9);transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.sheet.on{transform:none}
+.sheet .grab{width:38px;height:4px;border-radius:3px;background:rgba(231,238,247,.3);margin:0 auto 12px}
+.sheet .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sheet .sh b{font:500 17px/1.4 var(--serif)}
+.sheet .x{width:34px;height:34px;border-radius:50%;font-size:22px;color:var(--ink2)}
+.fld{margin:12px 0}
+.fld label{display:block;margin-bottom:6px;font:12px/1.4 var(--serif);color:var(--ink2);letter-spacing:.06em}
+.fld input{width:100%;padding:10px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:rgba(17,20,27,.45);outline:none;font:15px/1.5 var(--serif)}
+.fld input::placeholder{color:var(--ink3)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{padding:6px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.25);font:13.5px/1.4 var(--serif);color:var(--ink2)}
+.chips button.on{background:var(--bachelor);border-color:var(--bachelor);color:#11141B;font-weight:600}
+.chips button.new{border-style:dashed;color:var(--ink3)}
+.sheet .acts{display:flex;justify-content:flex-end;margin-top:18px}
+.sheet .save{height:44px;padding:0 26px;border-radius:999px;background:var(--bachelor);color:#11141B;font:600 15px/1 var(--serif);box-shadow:inset 0 1px 1px rgba(255,255,255,.7)}
+.covrow{display:flex;align-items:center;gap:16px}
+.covrow .cv{width:76px;flex:none}
+.cbtns{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.cb{padding:7px 16px;border-radius:999px;background:var(--bachelor);color:#11141B;font:600 13.5px/1.4 var(--serif);box-shadow:inset 0 1px 1px rgba(255,255,255,.7)}
+.cb.ghost{background:none;border:1px solid rgba(255,255,255,.3);color:var(--ink2);font-weight:400;box-shadow:none}
+.chint{font:12px/1.5 var(--serif);color:var(--ink3)}
+.pend .chips{margin-top:8px}
+.pend .chips button{padding:4px 12px;font-size:12.5px}
+
+/* 上架 */
+#drop{margin:4px 0 26px;padding:16px 16px 14px;text-align:center;cursor:pointer;--tile:#11141B;--a:18%;border-style:dashed;border-color:rgba(231,238,247,.32)}
+#drop.on{border-color:var(--bachelor)}
+#drop .h{font:500 14.5px/1.6 var(--serif)}
+#drop .h b{font-weight:400;color:var(--bachelor);margin-right:4px}
+#drop .s{display:block;margin-top:2px;font:italic 11.5px/1.6 var(--latin);color:var(--ink3)}
+#pending{text-align:left}
+.pend{margin-top:12px;padding-top:10px;border-top:1px dashed rgba(231,238,247,.2)}
+.pend .fn{font:10px/1.8 var(--latin);letter-spacing:.06em;color:var(--ink3);word-break:break-all}
+.pend input{width:100%;border:0;border-bottom:1px dashed rgba(231,238,247,.35);background:transparent;color:var(--ink);outline:none;font:15px/1.9 var(--serif);border-radius:0}
+.pend input.au{font:italic 13px var(--latin)}
+.pend input::placeholder{color:var(--ink3)}
+#pending .btns{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+#pending .btns span{padding:6px 14px;border-radius:999px;font-size:13px;cursor:pointer}
+#pending .btns .go3{background:var(--bachelor);color:#11141B;text-shadow:none}
+#pending .btns .cancel{border:1px solid rgba(231,238,247,.3)}
+#uprog{display:block;white-space:pre-line;text-align:left;margin-top:8px;font:12px/1.7 var(--serif);color:var(--ink2)}
+#uprog:empty{display:none}
+
+/* 学习那三间（生词本 / 错题本 / 练习题，config 里 study_rooms 打开才显示）：从深到浅 */
+.rows{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.row{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto 36px;align-items:center;gap:12px;padding:14px 16px 13px 18px;border-radius:16px;--a:22%;transition:transform .15s}
+.row strong{display:block;padding-bottom:6px;margin-bottom:6px;border-bottom:1px solid rgba(231,238,247,.2);font:700 17px/1.25 var(--serif);letter-spacing:.04em}
+.row small{display:block;font:italic 11.5px/1.45 var(--latin);color:rgba(231,238,247,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .c{font:italic 18px/1 var(--latin);color:var(--ink2)}
+.row .c:empty::before{content:'—';opacity:.4}
+.row .ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(17,20,27,.2)}
+.row .ic svg{width:18px;height:18px}
+.row.lt{color:#11141B;--a:62%;text-shadow:none}.row.lt strong{border-bottom-color:rgba(17,20,27,.22)}.row.lt small{color:rgba(17,20,27,.68)}.row.lt .ic{background:rgba(17,20,27,.1)}.row.lt .c{color:#1C273E}
+
+.colophon{margin:30px 0 0;text-align:center;font:10px/1.8 var(--latin);letter-spacing:.24em;color:#5d7591;text-shadow:0 1px 8px rgba(17,20,27,.9)}
+.colophon b{display:block;font:italic 400 20px/1.2 var(--latin);letter-spacing:0;color:var(--ink3)}
+
+/* 生词本 / 错题本 / 练习题：同一页里切 */
+.room{display:none}
+body[data-view="sitat"] #r-sitat,body[data-view="ordbok"] #r-ordbok,body[data-view="feil"] #r-feil,body[data-view="ovelser"] #r-ovelser{display:block}
+body:not([data-view="hall"]) #hall{display:none}
+.panel{--tile:#11141B;--a:34%;padding:4px 16px;margin-bottom:14px}
+.search{display:flex;align-items:center;gap:10px;padding:10px 14px;margin-bottom:10px;border-radius:999px;--tile:#1C273E;--a:30%}
+.search svg{width:16px;height:16px;flex:none;color:var(--ink3)}
+.search input{flex:1;min-width:0;border:0;background:transparent;outline:none;font:15px/1.6 var(--serif)}
+.search input::placeholder{color:var(--ink3);font-style:italic}
+#alpha{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 12px;padding:0 2px}
+#alpha span{min-width:32px;height:32px;display:inline-grid;place-items:center;border-radius:50%;font:13px/1 var(--latin);color:var(--ink2);cursor:pointer;text-shadow:0 1px 6px rgba(17,20,27,.9)}
+#alpha span.on{background:var(--bachelor);color:#11141B;text-shadow:none}
+#alpha span.dim{color:rgba(231,238,247,.25);cursor:default}
+ul{list-style:none;margin:0;padding:0}
+li{padding:14px 0;line-height:1.8;overflow-wrap:anywhere}
+li+li{border-top:1px solid rgba(255,255,255,.08)}
+.word{font:600 19px/1.4 var(--latin);color:var(--ink)}
+.meaning{font-size:14px;color:var(--ink2)}
+.ex{display:block;margin-top:4px;font:italic 13px/1.75 var(--latin);color:var(--ink3)}
+.src{display:inline-block;margin-left:8px;font:11px/1.8 var(--latin);color:var(--ink3)}
+.q{font-size:15px}
+.ans{display:block;font-size:14px;margin-top:5px}
+.ans.her{color:#e8b6a6}
+.ans.right{color:var(--bachelor)}
+.ans.hint,.ans.note{color:var(--ink3);font-size:13px}
+.fid{display:inline-block;margin-right:8px;padding:0 7px;border-radius:999px;border:1px solid rgba(143,172,203,.5);color:var(--bachelor);font:11px/1.6 var(--latin)}
+li.empty{text-align:center;color:var(--ink3);font-style:italic}
+.toggle{display:block;margin:4px 6px 14px;font:13px/1.6 var(--serif);color:var(--bachelor);text-shadow:0 1px 8px rgba(17,20,27,.9)}
+.toggle:empty{display:none}
+
+/* 好词好句本：她划的句子，问过我的连我的批注一起 */
+.fchips{display:flex;gap:8px;overflow-x:auto;margin:0 0 12px;padding:2px 2px 4px;scrollbar-width:none}
+.fchips::-webkit-scrollbar{display:none}
+.fchips button{flex:none;padding:5px 13px;border-radius:999px;border:1px solid rgba(255,255,255,.25);font:13px/1.4 var(--serif);color:var(--ink2);background:rgba(17,20,27,.4)}
+.fchips button.on{background:var(--bachelor);color:#11141B;border-color:var(--bachelor);font-weight:600}
+.qt{--tile:#11141B;--a:36%;padding:15px 18px 14px;margin-bottom:12px}
+.qt .src{display:flex;align-items:baseline;gap:10px;font:11.5px/1.6 var(--serif);color:var(--ink3)}
+.qt .src a{color:var(--bachelor);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qt .src .d{margin-left:auto;font:italic 11px var(--latin);white-space:nowrap}
+.qt .src .er{font-size:11px;color:var(--ink3);cursor:pointer;white-space:nowrap}
+.qt blockquote{margin:10px 0 0;padding:0 0 0 14px;border-left:2px solid rgba(143,172,203,.65);font:500 16.5px/1.9 var(--serif);color:var(--ink)}
+.qt .ai{margin-top:12px;padding:10px 13px 8px;border-radius:12px;background:rgba(17,20,27,.42);border:1px solid rgba(255,255,255,.1);font:14px/1.8 var(--serif);color:var(--ink2)}
+.qt .ai p{margin:0 0 .5em}
+.qt .ai img{max-width:110px;border-radius:8px;display:block}
+.qt .ai .sig{display:block;text-align:right;font:italic 12px var(--latin);color:var(--bachelor)}
+.qt .wait{margin:10px 0 0;font:italic 12.5px var(--latin);color:var(--ink3)}
+
+#boot{position:fixed;inset:0;z-index:100;background:var(--abyss);transition:opacity .5s;pointer-events:none}
+#boot.bye{opacity:0}
+@media (max-width:360px){.top h1{font-size:24px}.grid{gap:16px 9px}.row{padding:12px 14px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body data-view="hall">
+<div class="bgs"><img alt="" id="bgimg"></div>
+<div id="boot"></div>
+<main>
+  <header class="top">
+    <a class="back glass" id="back" href="#" aria-label="回去">‹</a>
+    <div class="t"><span class="k" id="kick">LES SAMMEN, LITT HVER DAG</span><h1><span id="htitle">书房</span> <em id="hsub">Bibliotek</em></h1></div>
+  </header>
+
+  <div id="hall">
+    <p class="lede">La lyset stå på til du finner din side.</p>
+    <div id="fortsett"></div>
+    <div id="books"></div>
+    <div class="label">Utdrag <b>摘抄</b></div>
+    <div class="rows">
+      <a class="row glass" style="--tile:#2C4972" href="#sitat"><span><strong>好词好句本</strong><small>Setninger jeg har streket under.</small></span><span class="c" id="c-sitat"></span><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 7H6.5A1.5 1.5 0 0 0 5 8.5V12h5zM10 12c0 2.6-1.6 4.3-4 4.8M19 7h-3.5A1.5 1.5 0 0 0 14 8.5V12h5zM19 12c0 2.6-1.6 4.3-4 4.8"/></svg></span></a>
+    </div>
+    <div id="drop" class="glass">
+      <input id="file" type="file" accept=".pdf,.epub,.txt,application/pdf,application/epub+zip,text/plain" multiple style="display:none">
+      <span class="h"><b>+</b>上架一本书</span>
+      <span class="s" id="drop-s">pdf · epub · txt —— epub 和 txt 能划线</span>
+      <div id="pending"></div>
+      <span id="uprog"></span>
+    </div>
+    <div class="label study">Studier <b>学习</b></div>
+    <div class="rows study">
+      <a class="row glass" style="--tile:#1C273E" href="#ordbok"><span><strong>生词本</strong><small>Ord for ord.</small></span><span class="c" id="c-ordbok"></span><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4.5h10.5a1.5 1.5 0 0 1 1.5 1.5v13.5H7.5A1.5 1.5 0 0 1 6 18z"/><path d="M6 18a1.5 1.5 0 0 1 1.5-1.5H18M9.5 8.5h5M9.5 11.5h3.5"/></svg></span></a>
+      <a class="row glass" style="--tile:#3B5E89" href="#feil"><span><strong>错题本</strong><small>Les en gang til.</small></span><span class="c" id="c-feil"></span><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5.5h14v13H5z"/><path d="M8.5 10l2 2 4-4M8.5 15.5h7"/></svg></span></a>
+      <a class="row glass lt" style="--tile:#8FACCB" href="#ovelser"><span><strong>练习题</strong><small>Litt hver dag.</small></span><span class="c" id="c-ovelser"></span><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.5 4.5l4 4L9 19l-5 1 1-5z"/><path d="M13.5 6.5l4 4"/></svg></span></a>
+    </div>
+    <div class="colophon"><b id="colo">Bibliotek</b>LES SAMMEN · LITT HVER DAG</div>
+  </div>
+
+  <section class="room" id="r-sitat" aria-label="好词好句本">
+    <div class="fchips" id="sfilter"></div>
+    <div id="sitater"></div>
+  </section>
+  <section class="room" id="r-ordbok" aria-label="生词本">
+    <label class="search glass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg><input id="vq" type="search" placeholder="søk · 搜生词或释义…" autocomplete="off"></label>
+    <div id="alpha" aria-label="按首字母筛选"></div>
+    <div class="panel glass"><ul id="vocab"></ul></div>
+  </section>
+  <section class="room" id="r-feil" aria-label="错题本">
+    <div class="panel glass"><ul id="mistakes"></ul></div>
+    <button type="button" class="toggle" id="feil-toggle"></button>
+    <div class="panel glass" id="cleared-box" style="display:none"><ul id="mistakes-cleared"></ul></div>
+  </section>
+  <section class="room" id="r-ovelser" aria-label="练习题">
+    <div class="label">Å gjøre <b>待完成</b></div>
+    <div class="panel glass"><ul id="ex-open"></ul></div>
+    <div class="label">Ferdig <b>做过的</b></div>
+    <div class="panel glass"><ul id="ex-done"></ul></div>
+  </section>
+</main>
+
+<div class="mask" id="mask"></div>
+<div class="sheet" id="esheet" role="dialog" aria-label="改这本书">
+  <div class="grab"></div>
+  <div class="sh"><b>改这本书</b><button class="x" data-close>×</button></div>
+  <div class="fld"><label>书名</label><input id="e-title" maxlength="120" autocomplete="off"></div>
+  <div class="fld"><label>作者</label><input id="e-author" maxlength="120" autocomplete="off" placeholder="可以不填"></div>
+  <div class="fld"><label>封面</label>
+    <div class="covrow"><span class="cv" id="e-cv"></span>
+      <div class="cbtns"><button type="button" class="cb" id="e-pick">换一张</button><button type="button" class="cb ghost" id="e-reset" hidden>用回原来的</button><span class="chint" id="e-chint"></span></div>
+    </div><input type="file" id="e-file" accept="image/*" hidden></div>
+  <div class="fld"><label>放在哪层书架</label><div class="chips" id="e-cats"></div></div>
+  <div class="acts"><button class="save" id="e-save">保存</button></div>
+</div>
+<script>
+const B = window.BOOT || {}, AI = B.ai || 'Claude';
+const el = id => document.getElementById(id);
+el('bgimg').src = B.bg || '/assets/bg.webp';
+document.title = (B.title || '书房') + ' · ' + (B.subtitle || 'Bibliotek');
+el('colo').textContent = B.subtitle || 'Bibliotek';
+if (B.mode !== 'off') el('drop-s').textContent = 'pdf · epub · txt —— epub 和 txt 能划线叫 ' + AI;
+if (!B.study) document.querySelectorAll('.study').forEach(x => x.style.display = 'none');
+if (!B.back) el('back').style.visibility = 'hidden';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+setTimeout(() => el('boot').classList.add('bye'), 60);
+setTimeout(() => el('boot').remove(), 700);
+
+// ---- 视图：书房本身 / 生词本 / 错题本 / 练习题（hash 切，#boker 是书架所在的书房） ----
+const ROOMS = { sitat: ['STREKET UNDER', '好词好句本', 'Sitatbok'], ordbok: ['ORD FOR ORD', '生词本', 'Ordbok'], feil: ['LES EN GANG TIL', '错题本', 'Feilbok'], ovelser: ['LITT HVER DAG', '练习题', 'Øvelser'] };
+function route() {
+  const h = location.hash.replace('#', '');
+  const room = ROOMS[h];
+  document.body.dataset.view = room ? h : 'hall';
+  el('kick').textContent = room ? room[0] : 'LES SAMMEN, LITT HVER DAG';
+  el('htitle').textContent = room ? room[1] : (B.title || '书房');
+  el('hsub').textContent = room ? room[2] : (B.subtitle || 'Bibliotek');
+  el('back').href = room ? '#' : (B.back || '#');
+  el('back').style.visibility = room || B.back ? '' : 'hidden';
+  if (h === 'boker') setTimeout(() => el('books').scrollIntoView({ block: 'start' }), 60);
+  if (h === 'sitat') loadSitat();
+  else window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+route();
+
+// ---- 书架 ----
+const CLOTH = ['#1C273E', '#2C4972', '#3B5E89', '#24324d', '#4A74A1', '#18202f'];
+function coverHtml(b) {
+  const han = /\p{Script=Han}/u.test(b.title);
+  const gen = `<span class="gen${han ? ' han' : ''}" style="--cloth:${CLOTH[b.id % CLOTH.length]}"><b>${esc(b.title)}</b><i>${esc(b.author || '')}</i></span>`;
+  return gen + (b.cover ? `<img src="${b.cover}" alt="" loading="lazy" onerror="this.remove()">` : '');
+}
+// 分类：课本、阅读在前，她自己加的按第一本上架的先后
+const NO = { '课本': 'Lærebøker', '阅读': 'Lesebøker' };
+let BOOKS = [];
+function catsOf(books) {
+  const order = ['课本', '阅读'];
+  books.forEach(b => { if (b.category && !order.includes(b.category)) order.push(b.category); });
+  return order;
+}
+const defaultCat = name => /\.(epub|txt)$/i.test(name) ? '阅读' : '课本';
+function chipsHtml(cur, extra) {
+  const cats = catsOf(BOOKS);
+  if (extra && !cats.includes(extra)) cats.push(extra);
+  return cats.map(c => `<button type="button" data-cat="${esc(c)}" class="${c === cur ? 'on' : ''}">${esc(c)}</button>`).join('')
+    + '<button type="button" class="new" data-new="1">＋ 新的一层</button>';
+}
+function bindChips(box, onPick) {
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    e.stopPropagation();
+    let c = b.dataset.cat;
+    if (b.dataset.new) {
+      c = (prompt('新的一层叫什么？（比如：哲学、诗、漫画）') || '').trim().slice(0, 12);
+      if (!c) return;
+      if (!box.querySelector(`[data-cat="${CSS.escape(c)}"]`)) b.insertAdjacentHTML('beforebegin', `<button type="button" data-cat="${esc(c)}">${esc(c)}</button>`);
+    }
+    box.querySelectorAll('[data-cat]').forEach(x => x.classList.toggle('on', x.dataset.cat === c));
+    onPick(c);
+  });
+}
+function renderBooks(books) {
+  BOOKS = books;
+  let last = null;
+  try { last = JSON.parse(localStorage.getItem('bib-last') || 'null'); } catch (e) {}
+  const cont = books.find(b => last && b.id === last.id) || books.filter(b => b.progress).sort((a, b) => b.progress / b.pages - a.progress / a.pages)[0];
+  el('fortsett').innerHTML = cont ? `<a class="cont glass" href="/les?book=${cont.id}">
+      <span class="cv">${coverHtml(cont)}</span>
+      <span class="w"><small>FORTSETT · 接着读</small><strong>${esc(cont.title)}</strong>
+        <em>${cont.progress ? `side ${cont.progress} av ${cont.pages}` : `${cont.pages} sider, ikke begynt ennå`}${cont.marks ? ` · 划了 ${cont.marks} 处` : ''}</em>
+        <span class="bar"><i style="width:${(cont.pages ? Math.min(100, cont.progress / cont.pages * 100) : 0).toFixed(1)}%"></i></span>
+        <span class="go">接着读 ›</span></span></a>` : '';
+  const bookHtml = b => {
+    const pct = b.pages ? Math.min(1, b.progress / b.pages) : 0;
+    const ready = (b.ready == null) ? b.pages : b.ready;
+    const busy = ready < b.pages;
+    return `<div class="bk">
+      <a class="cv" ${ready ? `href="/les?book=${b.id}"` : ''} aria-label="读《${esc(b.title)}》">${coverHtml(b)}
+        ${b.marks ? `<span class="mk" title="划过的线">${b.marks}</span>` : ''}<span class="fmt">${esc(b.format || 'pdf')}</span></a>
+      <div class="t">${esc(b.title)}</div><div class="a">${b.author ? esc(b.author) : '&nbsp;'}</div>
+      <div class="pb"><i style="width:${(pct * 100).toFixed(1)}%"></i></div>
+      <div class="m">${b.progress ? `${b.progress} / ${b.pages}` : `${b.pages} 页`}${busy ? ` · <span class="busy">排版中 ${ready}/${b.pages}</span>` : ''} · <a data-edit="${b.id}">改</a></div>
+    </div>`;
+  };
+  const shelves = catsOf(books).map((c, k) => {
+    const list = books.filter(b => (b.category || (b.kind === 'text' ? '阅读' : '课本')) === c);
+    if (!list.length) return '';
+    return `<section class="cat${k % 2 ? ' lt' : ''}">
+      <div class="label">${NO[c] || 'Hylle'} <b>${esc(c)}</b><span class="n">${list.length} 本</span></div>
+      <div class="mini glass"><div class="scroll">${list.map(bookHtml).join('')}<span class="tail"></span></div></div>
+    </section>`;
+  }).join('');
+  el('books').innerHTML = shelves || '<div class="label">Bokhyllen <b>书架</b></div><section class="shelf glass"><div class="empty">书架还空着<em>Hyllen venter på sin første bok.</em></div></section>';
+  // 还在切页面图的书：几秒后再看一眼进度
+  if (books.some(b => b.ready != null && b.ready < b.pages)) {
+    clearTimeout(renderBooks._t);
+    renderBooks._t = setTimeout(reloadBooks, 4000);
+  }
+}
+// 改书名 / 作者 / 放哪层：底部抽屉
+let editing = null;
+function openEdit(id) {
+  const b = BOOKS.find(x => x.id === +id); if (!b) return;
+  editing = { id: b.id, category: b.category };
+  el('e-title').value = b.title; el('e-author').value = b.author || '';
+  el('e-cats').innerHTML = chipsHtml(b.category);
+  el('e-cv').innerHTML = coverHtml(b);
+  el('e-reset').hidden = !(b.cover || '').includes('/mine');
+  el('e-chint').textContent = '';
+  el('mask').classList.add('on'); el('esheet').classList.add('on');
+}
+function closeEdit() { el('mask').classList.remove('on'); el('esheet').classList.remove('on'); editing = null; }
+bindChips(el('e-cats'), c => { if (editing) editing.category = c; });
+el('mask').addEventListener('click', closeEdit);
+el('esheet').querySelector('[data-close]').addEventListener('click', closeEdit);
+// 换封面：手机里挑一张图，先在页面上缩到 900px、转成 jpg 再传，选完就生效
+function shrink(file) {
+  return new Promise((ok, bad) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, 900 / Math.max(im.naturalWidth, im.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? ok(b) : bad(new Error('转不了')), 'image/jpeg', 0.86);
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); bad(new Error('这张图打不开')); };
+    im.src = url;
+  });
+}
+function sendCover(fd) {
+  const b = editing && BOOKS.find(x => x.id === editing.id); if (!b) return;
+  fd.append('book_id', b.id);
+  el('e-chint').textContent = '换着呢…';
+  fetch('/api/cover', { method: 'POST', body: fd }).then(r => r.json()).then(j => {
+    if (!j.ok) throw new Error(j.error || '没换成');
+    b.cover = j.cover; el('e-cv').innerHTML = coverHtml(b);
+    el('e-reset').hidden = !(b.cover || '').includes('/mine');
+    el('e-chint').textContent = '换好了'; reloadBooks();
+  }).catch(e => { el('e-chint').textContent = e.message || '网断了'; });
+}
+el('e-pick').addEventListener('click', () => el('e-file').click());
+el('e-file').addEventListener('change', async () => {
+  const f = el('e-file').files[0]; el('e-file').value = '';
+  if (!f) return;
+  try { const blob = await shrink(f); const fd = new FormData(); fd.append('file', blob, 'cover.jpg'); sendCover(fd); }
+  catch (e) { el('e-chint').textContent = e.message; }
+});
+el('e-reset').addEventListener('click', () => { const fd = new FormData(); fd.append('remove', '1'); sendCover(fd); });
+el('e-save').addEventListener('click', () => {
+  if (!editing) return;
+  const title = el('e-title').value.trim(), author = el('e-author').value.trim();
+  if (!title) { el('e-title').focus(); return; }
+  fetch('/api/rename', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ book_id: editing.id, title, author, category: editing.category }) })
+    .then(r => r.json()).then(j => { if (!j.ok) alert(j.error || '没改成'); closeEdit(); reloadBooks(); })
+    .catch(() => { alert('网断了'); closeEdit(); });
+});
+el('books').addEventListener('click', e => {
+  const id = e.target.dataset && e.target.dataset.edit;
+  if (!id) return;
+  e.preventDefault();
+  openEdit(id);
+});
+// ---- 好词好句本 ----
+function md(t) {
+  let h = esc(String(t || '').replace(/⟦[^⟧]*⟧/g, '').trim());
+  h = h.replace(/!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/g, '<img src="$1" alt="">');
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>').replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<i>$2</i>');
+  return h.split(/\n{2,}/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+}
+let SIT = [], sitBook = 0;
+function loadSitat() {
+  fetch('/api/les/marks?t=' + Date.now()).then(r => r.json()).then(d => { SIT = d.marks || []; renderSitat(); })
+    .catch(() => { el('sitater').innerHTML = '<div class="qt glass empty">没取到，刷新一下<em>Prøv igjen.</em></div>'; });
+}
+function renderSitat() {
+  const books = [];
+  SIT.forEach(m => { if (!books.some(b => b.id === m.book)) books.push({ id: m.book, title: m.title }); });
+  if (sitBook && !books.some(b => b.id === sitBook)) sitBook = 0;
+  el('sfilter').innerHTML = books.length > 1 ? [`<button data-b="0" class="${sitBook ? '' : 'on'}">全部 · ${SIT.length}</button>`]
+    .concat(books.map(b => `<button data-b="${b.id}" class="${sitBook === b.id ? 'on' : ''}">${esc(b.title)}</button>`)).join('') : '';
+  const list = SIT.filter(m => !sitBook || m.book === sitBook);
+  // 一口气划的几句是一起送给我的，我回一次：句子摆在一起，批注只放一次
+  const groups = [];
+  list.forEach(m => {
+    const g = groups[groups.length - 1];
+    if (g && m.turn && g[0].turn === m.turn) g.push(m); else groups.push([m]);
+  });
+  el('sitater').innerHTML = groups.map(g => {
+    const m0 = g[0], reply = g.find(m => m.reply);
+    const pages = [...new Set(g.map(m => m.page))].sort((a, b) => a - b);
+    return `<article class="qt glass">
+      <div class="src"><a href="/les?book=${m0.book}&s=${pages[0]}">《${esc(m0.title)}》 · ${pages.map(p => 'P. ' + p).join(', ')}</a>
+        <span class="d">${esc((m0.at || '').slice(5, 10))}</span><span class="er" data-er="${g.map(m => m.id).join(',')}">擦掉</span></div>
+      ${g.slice().reverse().map(m => `<blockquote>${esc(m.quote)}</blockquote>`).join('')}
+      ${reply ? `<div class="ai">${md(reply.reply)}<span class="sig">— ${esc(AI)}</span></div>`
+        : B.mode === 'off' ? ''
+        : m0.state === 'failed' ? `<p class="wait">这句没送到 ${esc(AI)} 那儿，去书里点那条线能重发。</p>`
+        : m0.state === 'done' ? '' : `<p class="wait">${esc(AI)} 还在看这句…</p>`}
+    </article>`;
+  }).join('') || '<div class="qt glass empty">还没有划过的句子<em>在书里选中一句，点「划线」，就收进这里。</em></div>';
+}
+el('sfilter').addEventListener('click', e => { const b = e.target.closest('[data-b]'); if (!b) return; sitBook = +b.dataset.b; renderSitat(); });
+el('sitater').addEventListener('click', e => {
+  const er = e.target.closest('[data-er]'); if (!er) return;
+  e.preventDefault();
+  if (!confirm('从书里擦掉这条线？回过的话还留在书页旁的小窗里。')) return;
+  Promise.all(er.dataset.er.split(',').map(id => fetch('/api/les/unmark', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: +id }) })))
+    .then(() => { loadSitat(); reloadBooks(); });
+});
+
+function reloadBooks() {
+  return fetch('shelf.json?t=' + Date.now()).then(r => r.json()).then(d => renderBooks(d.books)).catch(() => {});
+}
+
+// ---- 上架：选好文件先填书名/作者，再一本一本传，进度写在框里 ----
+(() => {
+  const drop = el('drop'), input = el('file'), prog = el('uprog'), pend = el('pending');
+  let queue = [];
+  const stem = n => n.replace(/\.(pdf|epub|txt)$/i, '');
+  function renderPending() {
+    pend.innerHTML = queue.map((q, i) => `<div class="pend" data-i="${i}">
+      <span class="fn">${esc(q.file.name)} · ${(q.file.size / 1048576).toFixed(1)}M</span>
+      <input class="ti" value="${esc(q.title)}" placeholder="书名">
+      <input class="au" value="${esc(q.author)}" placeholder="作者（可不填）">
+      <div class="chips">${chipsHtml(q.category)}</div>
+    </div>`).join('') + (queue.length ? `<div class="btns"><span class="cancel">算了</span><span class="go3">上架 ↗</span></div>` : '');
+    if (!queue.length) return;
+    pend.querySelectorAll('.pend').forEach(row => {
+      const q = queue[+row.dataset.i];
+      row.querySelector('.ti').addEventListener('input', e => { q.title = e.target.value; });
+      row.querySelector('.au').addEventListener('input', e => { q.author = e.target.value; });
+      bindChips(row.querySelector('.chips'), c => { q.category = c; });
+    });
+    pend.querySelector('.cancel').addEventListener('click', () => { queue = []; renderPending(); });
+    pend.querySelector('.go3').addEventListener('click', () => {
+      const files = queue.filter(q => q.title.trim()); if (!files.length) return;
+      queue = []; renderPending(); upload(files);
+    });
+  }
+  function pick(files) {
+    Array.prototype.slice.call(files || []).forEach(f => {
+      if (!/\.(pdf|epub|txt)$/i.test(f.name)) { prog.textContent = '✕ ' + f.name + '：只收 pdf / epub / txt'; return; }
+      queue.push({ file: f, title: stem(f.name), author: '', category: defaultCat(f.name) });
+    });
+    renderPending();
+  }
+  function upload(items) {
+    const lines = [];
+    (function next() {
+      const q = items.shift();
+      if (!q) { prog.textContent = lines.join('\n'); setTimeout(() => { prog.textContent = ''; }, 8000); reloadBooks(); return; }
+      const f = q.file;
+      const fd = new FormData(); fd.append('file', f, f.name); fd.append('title', q.title.trim()); fd.append('author', q.author.trim()); fd.append('category', q.category || '');
+      const xhr = new XMLHttpRequest(); xhr.open('POST', '/api/upload');
+      xhr.upload.onprogress = e => { if (e.lengthComputable) prog.textContent = lines.concat([q.title + '  ' + Math.round(e.loaded / e.total * 100) + '%']).join('\n'); };
+      xhr.upload.onload = () => { prog.textContent = lines.concat([q.title + '  传完了，排版中…']).join('\n'); };
+      xhr.onload = () => {
+        let j = {}; try { j = JSON.parse(xhr.responseText); } catch (e) {}
+        if (j.ok && j.added && j.added[0]) {
+          const a = j.added[0];
+          lines.push('✓ ' + a.title + ' · ' + a.pages + ' 页' + (a.scanned ? '（扫描版，能翻，AI 搜不了字）' : /\.(epub|txt)$/i.test(f.name) ? '（能划线）' : ''));
+        } else if (xhr.status === 413) lines.push('✕ ' + f.name + '：太大了，一本最多 200M');
+        else lines.push('✕ ' + ((j.errors && j.errors[0]) || (f.name + '：传失败了')));
+        prog.textContent = lines.join('\n'); reloadBooks(); next();
+      };
+      xhr.onerror = () => { lines.push('✕ ' + f.name + '：网断了'); prog.textContent = lines.join('\n'); next(); };
+      xhr.send(fd);
+    })();
+  }
+  drop.addEventListener('click', e => { if (!e.target.closest('#pending') && e.target.id !== 'uprog') input.click(); });
+  pend.addEventListener('click', e => e.stopPropagation());
+  input.addEventListener('change', () => { pick(input.files); input.value = ''; });
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('on'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('on'); }));
+  drop.addEventListener('drop', e => pick(e.dataTransfer.files));
+})();
+
+fetch('shelf.json').then(r => r.json()).then(d => {
+  el('c-ordbok').textContent = d.vocab.length || '';
+  el('c-feil').textContent = d.mistakes.filter(m => !m.cleared).length || '';
+  el('c-ovelser').textContent = d.exercises.filter(x => x.status === 'open').length || '';
+  el('c-sitat').textContent = d.books.reduce((n, b) => n + (b.marks || 0), 0) || '';
+  renderBooks(d.books);
+  if (location.hash === '#boker') route();
+
+  // 生词本
+  const words = d.vocab;
+  const ALPHA = (B.alphabet || 'abcdefghijklmnopqrstuvwxyz').split('');
+  const initials = new Set(words.map(v => v.word.trim().charAt(0).toLowerCase()));
+  let letter = '', query = '';
+  const renderVocab = () => {
+    let list = words;
+    if (query) {
+      const q = query.toLowerCase();
+      list = list.filter(v => (v.word + ' ' + v.meaning + ' ' + v.example).toLowerCase().includes(q));
+    } else if (letter) {
+      list = list.filter(v => v.word.trim().toLowerCase().startsWith(letter)).slice().sort((a, b) => a.word.localeCompare(b.word, 'no'));
+    }
+    el('vocab').innerHTML = list.map(v =>
+      `<li><span class="word">${esc(v.word)}</span>`
+      + (v.meaning ? ` <span class="meaning">— ${esc(v.meaning)}</span>` : '')
+      + (v.page_no ? `<span class="src">s. ${v.page_no}</span>` : '')
+      + (v.example ? `<span class="ex">«${esc(v.example)}»</span>` : '')
+      + `</li>`).join('') || `<li class="empty">${words.length ? '这个字母下没有词' : '还没有生词，第一个快来了'}</li>`;
+  };
+  el('alpha').innerHTML = ALPHA.map(a => `<span data-l="${a}" class="${initials.has(a) ? '' : 'dim'}" role="button">${a}</span>`).join('');
+  el('alpha').addEventListener('click', e => {
+    const l = e.target.dataset && e.target.dataset.l;
+    if (!l || !initials.has(l)) return;
+    letter = (letter === l) ? '' : l;
+    query = ''; el('vq').value = '';
+    el('alpha').querySelectorAll('span').forEach(s => s.classList.toggle('on', s.dataset.l === letter));
+    renderVocab();
+  });
+  el('vq').addEventListener('input', () => {
+    query = el('vq').value.trim();
+    if (query && letter) { letter = ''; el('alpha').querySelectorAll('span').forEach(s => s.classList.remove('on')); }
+    renderVocab();
+  });
+  renderVocab();
+
+  // 错题本
+  const renderMistake = m =>
+    `<li><span class="fid">f${m.id}</span><span class="q">${esc(m.question)}</span>`
+    + (m.wrong ? `<span class="ans her">她答 — ${esc(m.wrong)}</span>` : '')
+    + `<span class="ans right">正解 — ${esc(m.right)}</span>`
+    + (m.note ? `<span class="ans note">要点 — ${esc(m.note)}</span>` : '')
+    + `</li>`;
+  const open = d.mistakes.filter(m => !m.cleared), cleared = d.mistakes.filter(m => m.cleared);
+  el('mistakes').innerHTML = open.map(renderMistake).join('') || '<li class="empty">错题本是空的，很好。</li>';
+  if (cleared.length) {
+    el('feil-toggle').textContent = `▸ 故纸堆 · ${cleared.length}（已掌握）`;
+    el('mistakes-cleared').innerHTML = cleared.map(renderMistake).join('');
+    el('feil-toggle').addEventListener('click', () => {
+      const box = el('cleared-box'), on = box.style.display !== 'none';
+      box.style.display = on ? 'none' : '';
+      el('feil-toggle').textContent = `${on ? '▸' : '▾'} 故纸堆 · ${cleared.length}（已掌握）`;
+    });
+  }
+
+  // 练习题
+  const renderEx = x =>
+    `<li><span class="fid">x${x.id}</span><span class="q">${esc(x.question)}</span>`
+    + (x.status === 'done' ? `<span class="ans her">她答 — ${esc(x.her_answer || '（空）')}</span>` : '')
+    + (x.status === 'done' && x.answer ? `<span class="ans right">参考 — ${esc(x.answer)}</span>` : '')
+    + (x.note ? `<span class="ans hint">提示 — ${esc(x.note)}</span>` : '')
+    + `</li>`;
+  el('ex-open').innerHTML = d.exercises.filter(x => x.status === 'open').map(renderEx).join('') || '<li class="empty">没有待做的题。</li>';
+  el('ex-done').innerHTML = d.exercises.filter(x => x.status === 'done').map(renderEx).join('') || '<li class="empty">还没做过题。</li>';
+}).catch(() => { el('books').innerHTML = '<div class="empty">没取到书架，刷新一下<em>Prøv igjen.</em></div>'; });
+</script>
+</body>
+</html>
