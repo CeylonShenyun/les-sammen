@@ -10,9 +10,9 @@
 
 **不只 Claude**：Claude Code（`claude -p`）、Claude API、Claude Agent SDK、OpenAI 格式的各家模型（GPT、DeepSeek、Gemini、豆包、硅基流动、OpenRouter……）、你自己的 bridge 或脚本，都能接。
 
-| 书架 | 阅读 | 批注 | 好词好句本 |
-|---|---|---|---|
-| ![书架](docs/shelf.webp) | ![阅读](docs/read.webp) | ![批注](docs/note.webp) | ![好词好句本](docs/sitat.webp) |
+| 书架 | 阅读 | 批注 | 小窗 | 好词好句本 |
+|---|---|---|---|---|
+| ![书架](docs/shelf.webp) | ![阅读](docs/read.webp) | ![批注](docs/note.webp) | ![小窗](docs/chat.webp) | ![好词好句本](docs/sitat.webp) |
 
 ## 能做什么
 

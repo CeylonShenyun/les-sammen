@@ -91,6 +91,7 @@
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { #page { background: #141a25; } }
   #page::-webkit-scrollbar { display: none; }
   body.chat #page, body.short #page { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+  body.chat #content, body.short #content { flex: 1 0 auto; }  /* 纸页被挤矮时字照原样排、整页能滑，别让页码压到字上 */
   #page.in-next { animation: inNext .2s ease-out; }
   #page.in-prev { animation: inPrev .2s ease-out; }
   @keyframes inNext { from { opacity: .35; transform: translateX(16px); } to { opacity: 1; transform: none; } }
